@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.1 - 2026-07-05
+
+### Fixed
+
+- Fixed Linux case-sensitive embedded resource path for the sample web project.
+- Updated the NuGet publish workflow to restore, build, and pack only `JLocalizer/JLocalizer.csproj`.
+
+### Published
+
+- NuGet package: `JLocalizer` `1.1.1`
+- Package URL: https://www.nuget.org/packages/JLocalizer/1.1.1
+
 ## 1.1.0 - 2026-07-05
 
 ### Added
