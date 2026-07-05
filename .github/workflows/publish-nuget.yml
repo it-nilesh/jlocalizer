@@ -1,0 +1,70 @@
+name: Publish NuGet
+
+on:
+  push:
+    tags:
+      - "v*"
+      - "[0-9]*.[0-9]*.[0-9]*"
+  release:
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      package_version:
+        description: "Package version to publish, for example 1.2.3"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Pack and publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
+
+      - name: Resolve package version
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            tag="${{ github.event.release.tag_name }}"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            tag="${{ inputs.package_version }}"
+          else
+            tag="${GITHUB_REF_NAME:-1.1.0}"
+          fi
+
+          version="${tag#v}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Publishing JLocalizer $version"
+
+      - name: Restore
+        run: dotnet restore JLocalizer.sln
+
+      - name: Build
+        run: dotnet build JLocalizer.sln -c Release --no-restore -p:Version=${{ steps.version.outputs.version }}
+
+      - name: Pack
+        run: dotnet pack JLocalizer/JLocalizer.csproj -c Release --no-build -p:Version=${{ steps.version.outputs.version }} -o artifacts/packages
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jlocalizer-nuget-${{ steps.version.outputs.version }}
+          path: artifacts/packages/*.nupkg
+
+      - name: Publish to NuGet
+        run: dotnet nuget push artifacts/packages/*.nupkg --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
