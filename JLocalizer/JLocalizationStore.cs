@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Localization;
+using System;
 using System.Collections.Generic;
 
 namespace JLocalizer
@@ -33,13 +34,13 @@ namespace JLocalizer
     {
         public static Dictionary<string, IJLocalizationStore> AddJLocalization(this Dictionary<string, IJLocalizationStore> jlocalizationStore, string cultureName, Dictionary<string, string> dictionary)
         {
-            var store = new Dictionary<string, LocalizedString>();
+            var store = new Dictionary<string, LocalizedString>(StringComparer.Ordinal);
             foreach (var localizationValue in dictionary)
             {
-                store.Add(localizationValue.Key, new LocalizedString(localizationValue.Key, localizationValue.Value));
+                store[localizationValue.Key] = new LocalizedString(localizationValue.Key, localizationValue.Value);
             }
 
-            jlocalizationStore.Add(cultureName, new JLocalizationStore(cultureName, store));
+            jlocalizationStore[cultureName] = new JLocalizationStore(cultureName, store);
 
             return jlocalizationStore;
         }

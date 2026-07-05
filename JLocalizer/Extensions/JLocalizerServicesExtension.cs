@@ -11,15 +11,22 @@ namespace JLocalizer
     {
         public static void AddJLocalizer(this IServiceCollection services, Action<JLocalizerResourceService> localizerResource, ServiceLifetime serviceLifetime)
         {
+            if (services == null)
+                throw new ArgumentNullException(nameof(services));
+
+            if (localizerResource == null)
+                throw new ArgumentNullException(nameof(localizerResource));
+
             services.Replace(ServiceDescriptor.Describe(typeof(IStringLocalizerFactory), typeof(JStringLocalizerFactory), serviceLifetime));
             services.Add(ServiceDescriptor.Describe(typeof(IStringLocalizer<>), typeof(JStringLocalizer<>), serviceLifetime));
 
-            ServiceDescriptor.Describe(typeof(IStringLocalizer), x =>
+            services.Add(ServiceDescriptor.Describe(typeof(IStringLocalizer), x =>
             {
                 var options = x.GetService<IOptions<JLocalizationOptions>>();
                 var factory = x.GetService<IStringLocalizerFactory>();
-                return factory.Create(options.Value.Resources.ElementAtOrDefault(0).Key);
-            }, serviceLifetime);
+                var firstResource = options.Value.Resources.FirstOrDefault();
+                return firstResource.Key == null ? null : factory.Create(firstResource.Key);
+            }, serviceLifetime));
 
             services.AddSingleton<IExternalLocalizerFactory, ExternalLocalizerFactory>();
             localizerResource(new JLocalizerResourceService(services));

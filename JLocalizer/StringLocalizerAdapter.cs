@@ -48,7 +48,10 @@ namespace JLocalizer
 
         public IStringLocalizer WithCulture(CultureInfo culture)
         {
-            return _stringLocalizer.WithCulture(culture);
+            if (_stringLocalizer is StringLocalizerAdapter stringLocalizerAdapter)
+                return stringLocalizerAdapter.WithCulture(culture);
+
+            return _stringLocalizer;
         }
     }
 }

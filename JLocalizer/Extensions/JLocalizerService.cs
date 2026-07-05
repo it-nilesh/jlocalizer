@@ -45,6 +45,9 @@ namespace JLocalizer
 
         public JLocalizerResourceService AddLocalizedResource(Type resource)
         {
+            if (resource == null)
+                throw new ArgumentNullException(nameof(resource));
+
             _services.Configure<JLocalizationOptions>(options =>
             {
                 options.Resources.Add(resource);
@@ -53,11 +56,32 @@ namespace JLocalizer
             return this;
         }
 
+        public JLocalizerResourceService AddLocalizedResource<TResource>()
+        {
+            return AddLocalizedResource(typeof(TResource));
+        }
+
         public JLocalizerResourceService AddLocalizedResource<T>(T resourceBinder) where T : JLocalizationResourceBinder
         {
+            if (resourceBinder == null)
+                throw new ArgumentNullException(nameof(resourceBinder));
+
             _services.Configure<JLocalizationOptions>(options =>
             {
                 options.Resources.Add(typeof(T), resourceBinder);
+            });
+
+            return this;
+        }
+
+        public JLocalizerResourceService AddLocalizedResource<TResource>(JLocalizationResourceBinder resourceBinder)
+        {
+            if (resourceBinder == null)
+                throw new ArgumentNullException(nameof(resourceBinder));
+
+            _services.Configure<JLocalizationOptions>(options =>
+            {
+                options.Resources.Add(typeof(TResource), resourceBinder);
             });
 
             return this;

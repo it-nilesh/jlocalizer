@@ -1,11 +1,9 @@
 ﻿using Microsoft.Extensions.Localization;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text.RegularExpressions;
 
 namespace JLocalizer.VirtualFile
 {
@@ -39,19 +37,28 @@ namespace JLocalizer.VirtualFile
         public IReadOnlyDictionary<string, IJLocalizationStore> Read(string path, string extension, Func<string, Stream, IJLocalizationStore> streamFunc)
         {
             var localizedStringStore = new Dictionary<string, IJLocalizationStore>(StringComparer.OrdinalIgnoreCase);
+            var suffix = "." + extension.TrimStart('.');
 
             for (int keyIndex = 0; keyIndex < _fileNames.Length; keyIndex++)
             {
                 string fileName = _fileNames[keyIndex];
-                if (Regex.IsMatch(fileName, $@"^*{path}.*-*.({extension})") ||
-                    Regex.IsMatch(fileName, $@"^*{path}.*.({extension})"))
+                if (IsLocalizationResource(fileName, path, suffix))
                 {
-                    string caltureName = Helper.GetCultureNameFromFile(fileName);
-                    localizedStringStore[caltureName] = streamFunc(caltureName, _virtualFileReader.Read(fileName));
+                    string cultureName = Helper.GetCultureNameFromFile(fileName);
+                    using (var stream = _virtualFileReader.Read(fileName))
+                    {
+                        localizedStringStore[cultureName] = streamFunc(cultureName, stream);
+                    }
                 }
             }
 
             return localizedStringStore;
+        }
+
+        private static bool IsLocalizationResource(string fileName, string path, string suffix)
+        {
+            return fileName.EndsWith(suffix, StringComparison.OrdinalIgnoreCase) &&
+                   fileName.IndexOf(path, StringComparison.OrdinalIgnoreCase) >= 0;
         }
     }
 }

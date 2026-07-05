@@ -4,7 +4,8 @@ namespace JLocalizer
 {
     public abstract class JLocalizationResourceBinder
     {
-        protected IReadOnlyDictionary<string, IJLocalizationStore> LocalizationStore;
+        protected IReadOnlyDictionary<string, IJLocalizationStore> LocalizationStore =
+            new Dictionary<string, IJLocalizationStore>();
 
         internal void ExecuteBinder()
         {

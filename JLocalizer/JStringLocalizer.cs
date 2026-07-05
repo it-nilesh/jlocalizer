@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Localization;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 
@@ -40,22 +41,40 @@ namespace JLocalizer
         public LocalizedString GetStringFormatted(string name, string cultureName, params object[] arguments)
         {
             var localizedString = GetLocalizedString(name, cultureName);
-            return new LocalizedString(name, string.Format(localizedString.Value, arguments), localizedString.ResourceNotFound, localizedString.SearchedLocation);
+            return new LocalizedString(
+                name,
+                string.Format(CultureInfo.CurrentCulture, localizedString.Value, arguments),
+                localizedString.ResourceNotFound,
+                localizedString.SearchedLocation);
         }
 
         public LocalizedString GetLocalizedString(string name, string cultureName)
         {
-            var value = Resource.Get()
-                                .Get(cultureName)?.GetOrNull(name);
+            var stores = Resource.Get();
 
-            if (value == null)
-            {
-                return new LocalizedString(name, name, resourceNotFound: true);
-            }
-            else
+            if (TryGetLocalizedString(stores, cultureName, name, out var value))
             {
                 return value;
             }
+
+            var parentCulture = cultureName;
+            while (!string.IsNullOrWhiteSpace(parentCulture) && parentCulture.IndexOf('-') >= 0)
+            {
+                parentCulture = Helper.GetBaseCultureName(parentCulture);
+                if (TryGetLocalizedString(stores, parentCulture, name, out value))
+                {
+                    return value;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(Resource.DefaultCultureName) &&
+                !string.Equals(Resource.DefaultCultureName, cultureName, StringComparison.OrdinalIgnoreCase) &&
+                TryGetLocalizedString(stores, Resource.DefaultCultureName, name, out value))
+            {
+                return value;
+            }
+
+            return new LocalizedString(name, name, resourceNotFound: true);
         }
 
         public IReadOnlyList<LocalizedString> GetAllStrings(
@@ -63,28 +82,59 @@ namespace JLocalizer
             bool includeParentCultures = true)
         {
             var allStrings = new Dictionary<string, LocalizedString>();
+            var stores = Resource.Get();
 
             if (includeParentCultures)
             {
                 if (!string.IsNullOrWhiteSpace(Resource.DefaultCultureName))
                 {
-                    Resource.Get()
-                            .Get(Resource.DefaultCultureName)?.Fill(allStrings);
+                    stores.Get(Resource.DefaultCultureName)?.Fill(allStrings);
                 }
 
-                if (cultureName.Contains("-"))
+                var parentCultures = GetParentCultures(cultureName);
+                for (var index = parentCultures.Count - 1; index >= 0; index--)
                 {
-                    Resource.Get()
-                            .Get(Helper.GetBaseCultureName(cultureName))?.Fill(allStrings);
+                    stores.Get(parentCultures[index])?.Fill(allStrings);
                 }
             }
 
-            Resource.Get()
-                    .Get(cultureName)?.Fill(allStrings);
+            stores.Get(cultureName)?.Fill(allStrings);
 
             return new List<LocalizedString>(allStrings.Values);
         }
 
+        private static bool TryGetLocalizedString(
+            IReadOnlyDictionary<string, IJLocalizationStore> stores,
+            string cultureName,
+            string name,
+            out LocalizedString localizedString)
+        {
+            localizedString = null;
+
+            if (string.IsNullOrWhiteSpace(cultureName))
+                return false;
+
+            var store = stores.Get(cultureName);
+            if (store == null)
+                return false;
+
+            localizedString = store.GetOrNull(name);
+            return localizedString != null;
+        }
+
+        private static List<string> GetParentCultures(string cultureName)
+        {
+            var cultures = new List<string>();
+
+            while (!string.IsNullOrWhiteSpace(cultureName) && cultureName.IndexOf('-') >= 0)
+            {
+                cultureName = Helper.GetBaseCultureName(cultureName);
+                if (!string.IsNullOrWhiteSpace(cultureName))
+                    cultures.Add(cultureName);
+            }
+
+            return cultures;
+        }
 
         public class WithCultureStringLocalizer : IStringLocalizer
         {

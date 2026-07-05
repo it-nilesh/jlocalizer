@@ -22,7 +22,10 @@ namespace JLocalizer
 
         public IStringLocalizer WithCulture(CultureInfo culture)
         {
-            return Localizer.WithCulture(culture);
+            if (Localizer is JStringLocalizer jStringLocalizer)
+                return jStringLocalizer.WithCulture(culture);
+
+            return Localizer;
         }
 
         internal IStringLocalizer Localizer;
