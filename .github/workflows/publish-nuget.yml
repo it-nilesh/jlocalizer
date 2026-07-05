@@ -52,10 +52,10 @@ jobs:
           echo "Publishing JLocalizer $version"
 
       - name: Restore
-        run: dotnet restore JLocalizer.sln
+        run: dotnet restore JLocalizer/JLocalizer.csproj
 
       - name: Build
-        run: dotnet build JLocalizer.sln -c Release --no-restore -p:Version=${{ steps.version.outputs.version }}
+        run: dotnet build JLocalizer/JLocalizer.csproj -c Release --no-restore -p:Version=${{ steps.version.outputs.version }}
 
       - name: Pack
         run: dotnet pack JLocalizer/JLocalizer.csproj -c Release --no-build -p:Version=${{ steps.version.outputs.version }} -o artifacts/packages
